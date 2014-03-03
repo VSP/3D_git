@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+       <head>
+                <title>Circles - 1101097_Ville_Peltola</title>
+                <style>
+                       body{ background-color: grey; }
+                       canvas{ background-color: black; }
+                </style>
+				<script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+				
+			   <script id="shader-vs" type="x-shader/x-vertex">
+                //This defines the position and shape of each vertex
+				
+						//Uniform values
+						//attribute vec3 aVertexPosition;
+						//attribute vec3 aVertexColor;
+						
+						attribute float vertexAngleAttribute;
+						
+						uniform mat4 uMVMatrix;
+						uniform mat4 uPMatrix;
+						
+						//needed for radius
+						uniform float radius;
+						
+						varying float vAngle;
+					 //maths in the end for this: 
+					 //x = r sin(alfa)
+					 //y = r cos(alfa)
+					 
+					 vec4 transform(float a)
+					 {
+
+						vec4 test;
+						test = vec4(sin(a)*radius, cos(a)*radius,0,1);
+						return test;
+					 
+					 }						
+						
+                        void main(void) {
+						gl_PointSize = 8.0;
+						gl_Position = uPMatrix * uMVMatrix * transform(vertexAngleAttribute);
+						//Needed for coloring
+						vAngle = vertexAngleAttribute;
+	
+                        }
+                </script>
+				
+                <script id="shader-fs" type="x-shader/x-fragment">
+ 
+		  precision highp float;
+             
+		  varying float vAngle;
+			
+			vec4 color(float a)
+			{
+			    return vec4(a , sin(a), sin(a), 1.0);
+			}
+
+			void main(void)
+			{
+			    gl_FragColor = color(vAngle);
+			}
+                </script>
+                <script>
+				
+				
+				/////////////////////////////////////////////////////////////////////
+				var     gl = null,
+                        canvas = null,
+                        glProgram = null,
+                        fragmentShader = null,
+                        vertexShader = null;
+						
+				//Projection and modelview matrices. Three.js matrix
+				var 	pMatrix = new THREE.Matrix4();
+						mvMatrix = new THREE.Matrix4();		
+				
+				 var steps; = null;
+					 
+				var angleBuffer = null;
+
+				 
+				 var renderMode = null;
+				//////////////////////////////////////////////////////////////////////////
+				function initWebGL()
+                        {
+                                canvas = document.getElementById("my-canvas");
+                                try{
+                                     gl = canvas.getContext("webgl") ||
+                                          canvas.getContext("experimental-webgl");
+                                }catch(e){
+                                }
+                                if(gl)
+                                {
+									 initShaders();
+                                     setupBuffers();
+                                     //Anim loop here if we wanted one
+									 
+									 setupWebGL();
+                                     drawScene();
+									 
+                                }else{
+                                          alert( "Error: Your browser does not appear to" + "support WebGL.");
+                                }
+                     }
+                     function setupWebGL()
+                     {
+                                //set the clear color to a shade of green
+                                gl.clearColor(0.1, 0.5, 0.1, 1.0);
+                                gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+								
+								gl.viewport(0, 0, canvas.width, canvas.height);
+								//mat4.perspective(45, canvas.width / canvas.height, 0.1, 100.0, pMatrix);
+								
+								pMatrix.makeOrthographic( -7.0, 7.0, 7.0, -7.0, -0.1, 2.0);
+								changeMode('LINE_LOOP');
+					}
+
+					
+					function setupBuffers()
+                     {
+									//We need angles/radians stored so we can compute the x,y position.
+									//Full circle = 2* pi radians
+									// So the angle in radians for vertice is pi*2/ howManyVerticesThereAre 
+									
+									steps = 50;
+									var angle = Math.PI*2/steps;
+					 
+									var angleTest = [];
+									
+									for(var i =0; i < steps ; i++)
+									{
+										angleTest.push(angle * i)
+									}
+									
+									 angleBuffer = gl.createBuffer();
+                                     gl.bindBuffer(gl.ARRAY_BUFFER, angleBuffer);
+                                     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(angleTest), gl.STATIC_DRAW);
+									
+
+                     }
+	
+					 function drawScene()
+                     {
+                        var vertexAngle =  gl.getAttribLocation(glProgram, "vertexAngleAttribute"); 
+						 
+                         gl.vertexAttribPointer(vertexAngle, 1, gl.FLOAT, false, 0, 0);
+                         gl.enableVertexAttribArray(glProgram.vertexAngleAttribute);           
+						
+						//radius via uniform variable
+						var radiusLocation = gl.getUniformLocation(glProgram, "radius");
+						//five could be something that the user can set
+						gl.uniform1f(radiusLocation, 5);
+						
+						//get matrix ubiforms
+						glProgram.pMatrixUniform = gl.getUniformLocation(glProgram, "uPMatrix");
+						glProgram.mvMatrixUniform = gl.getUniformLocation(glProgram, "uMVMatrix");
+					
+						//set Matrix uniforms
+						gl.uniformMatrix4fv(glProgram.pMatrixUniform, false, pMatrix.flattenToArray([]));
+						gl.uniformMatrix4fv(glProgram.mvMatrixUniform, false, mvMatrix.flattenToArray([]));
+						
+						gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);		
+						gl.drawArrays(renderMode, 0, steps);
+                     }
+					
+					
+					
+					function initShaders()
+                     {
+                                //get shader source
+                     var        fs_source = document.getElementById('shader-fs').innerHTML,
+                                vs_source = document.getElementById('shader-vs').innerHTML;
+                                //compile shaders
+                                vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+                                fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+                                //create program
+                                glProgram = gl.createProgram();
+                                //attach and link shaders to the program
+                                gl.attachShader(glProgram, vertexShader);
+                                gl.attachShader(glProgram, fragmentShader);
+                                gl.linkProgram(glProgram);
+                                if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                                     alert("Unable to initialize the shader program.");
+                                }
+                                //use program
+                                gl.useProgram(glProgram);
+								
+				
+								
+                     }
+                     function makeShader(src, type)
+{
+                                //compile the vertex shader
+                                var shader = gl.createShader(type);
+                                gl.shaderSource(shader, src);
+                                gl.compileShader(shader);
+                                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                                     alert("Error compiling shader: " +
+                                          gl.getShaderInfoLog(shader));
+                                }
+                                     return shader;
+                     }
+				
+					//Function for changing the mode
+					function changeMode(m) 
+					{
+						renderMode = gl[m];
+					}
+				
+				
+				
+				</script>
+				
+				
+				
+	  <body onload="initWebGL()">
+            <canvas id="my-canvas" width="800" height="800">
+            Your browser does not support the HTML5 canvas element.
+
+            </canvas>
+			<div>
+			<input type="radio" name="render-type" onclick="changeMode('TRIANGLE_FAN'); drawScene()"/>Triangle fan<br/>
+			<input type="radio" name="render-type" onclick="changeMode('LINE_LOOP'); drawScene()"/>Line loop<br/>
+			<input type="radio" name="render-type" onclick="changeMode('POINTS'); drawScene()"/>Points<br/>	
+			</div>	
+	</body>
+				
+</html>
