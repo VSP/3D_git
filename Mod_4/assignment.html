@@ -1,0 +1,214 @@
+<?doctype HTML>
+<html>
+	<head>
+		<title>Mod_4</title>
+		<style>canvas { width: 100%; height: 100% }</style>
+	</head>
+		<script src="three.js"></script>
+		<script>
+			
+			var mouse = {
+				down: false,
+				prevY: 0,
+				prevX: 0
+			}
+			var keysPressed = [];		
+			
+			var scene = null;
+			var camera = null;
+			var camObject = null;
+			var renderer = null;
+			
+			
+			//pieces of the arm, and fingers..s
+			var shoulder = null;
+			var uArm = null;
+			var elbow = null;
+			var lArm = null;
+			var hand = null;
+			var fingers1 = null;
+			var fingers2 = null;
+			var fingers3 = null;
+			var thumb = null;			
+			var arm = null;
+			
+			var timer = null;
+			
+			function start()
+			{
+			scene = new THREE.Scene();
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+			camObject = new THREE.Object3D();
+			//add camera to the scene via camObject(camera is a child of the camobject)
+			camObject.add(camera);
+			scene.add(camObject);
+						
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
+			
+			arm = new THREE.Object3D();
+			timer = 1/60000;
+			
+			////////////////////////////////////////////////////////////////////////////////
+			//Arm
+			////////////////////////////////////////////////////////////////////////////////
+			//shoulder
+			var geometryShoulder = new THREE.SphereGeometry(0.2,0.2,0.2);
+			var materialShoulder = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+			//Upper arm
+			var geometryUpperArm = new THREE.CubeGeometry(0.25,0.9,0.1);
+			var materialUpperArm = new THREE.MeshBasicMaterial( {color: 0x000ff} );
+			//Elbow
+			var geometryElbow = new THREE.SphereGeometry(0.2,0.2,0.2);
+			var materialElbow = new THREE.MeshBasicMaterial( {color: 0x002200} );
+			//Lower arm
+			var geometryLowerArm = new THREE.CubeGeometry(0.25,0.9,0.1);
+			var materialLowerArm = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+			//Hand
+			var geometryHand = new THREE.CubeGeometry(0.60,0.40,0.1);
+			var materialHand = new THREE.MeshBasicMaterial( {color: 0xf0ff00} );
+			//Fingers
+			var geometryFingers = new THREE.CubeGeometry(0.1,0.4,0.1);
+			var materialFingers = new THREE.MeshBasicMaterial( {color: 0x0ffff0} );
+			var geometryThumb= new THREE.CubeGeometry(0.4,0.1,0.1);
+			/*
+			Shoulder: sphere
+			upper arm: cube
+			elbow: sphere
+			lower: cube
+			hand: cube:
+			fingers: cube (thumb + three others)
+			*/
+			
+			shoulder = new THREE.Mesh(geometryShoulder, materialShoulder);
+			uArm = new THREE.Mesh(geometryUpperArm, materialUpperArm);
+			elbow = new THREE.Mesh(geometryElbow, materialElbow);
+			lArm = new THREE.Mesh(geometryLowerArm, materialLowerArm);
+			hand = new THREE.Mesh(geometryHand, materialHand);
+			fingers1 = new THREE.Mesh(geometryFingers, materialFingers);
+			fingers2 = new THREE.Mesh(geometryFingers, materialFingers);
+			fingers3 = new THREE.Mesh(geometryFingers, materialFingers);
+			thumb = new THREE.Mesh(geometryThumb, materialFingers);
+			
+			arm.add(shoulder);
+			shoulder.translateX(-1);
+			shoulder.translateY(-1.25);
+			
+			shoulder.add(uArm);
+			uArm.translateY(0.6);
+			
+			uArm.add(elbow);
+			elbow.translateY(0.5);
+			
+			elbow.add(lArm);
+			lArm.translateY(0.6);
+			
+			lArm.add(hand);
+			hand.translateY(0.65);
+
+			hand.add(fingers1);
+			fingers1.translateY(0.35);
+			
+			hand.add(fingers2);
+			fingers2.translateX(-0.25);
+			fingers2.translateY(0.35);
+			
+			hand.add(fingers3);
+			fingers3.translateX(0.25);
+			fingers3.translateY(0.35);
+			
+			hand.add(thumb);
+			thumb.translateX(0.50);
+			
+			
+			scene.add(arm);
+		///////////////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////////
+		
+		
+		
+		
+			camObject.position.z = 5;
+			
+			
+			document.onkeydown = function(event) {
+				keysPressed[event.keyCode] = true;
+			}
+			
+			document.onkeyup = function(event) {
+				keysPressed[event.keyCode] = false;
+			}
+			
+			document.onmousedown = function(ev){
+				mouse.down = true;
+				mouse.prevY = ev.pageY;
+				mouse.prevX = ev.pageX;
+			}
+
+			document.onmouseup = function(ev){
+				mouse.down = false;
+
+			}
+
+			document.onmousemove = function(ev){
+				if(mouse.down)
+				{
+				var rot = (ev.pageY - mouse.prevY)* 0.01;
+				var rotY = (ev.pageX - mouse.prevX)* 0.01;
+				
+				camObject.rotation.y -= rotY;
+				//Gimbal lock. Doesn't always turn rightly if done like below
+				camera.rotation.x -=rot;
+				mouse.prevY = ev.pageY;
+				mouse.prevX = ev.pageX;
+				}
+			}
+			//var newQuaternion = new THREE.Quaternion(); 
+			//var destinationQuaternion = new THREE.Quaternion(shoulder.position.x-2, shoulder.position.y-2,shoulder.position.z,1);
+			 render();
+			}
+			
+			function render() {
+			
+				//var temQuaterion = new THREE.Quaternion(); 
+				renderer.setClearColor(0x000000, 1.0);
+				renderer.clear(true);
+				renderer.render(scene, camera);	
+				
+				//	Got error with this example: Let's try simple translate of camera next
+				//  Because of this won't be able to "fly" probs
+				//	var dir = new THREE.vector3(0,0,-1);
+				//	var dirw = dir.applyMatrix4(camObject.matrixRotationWorld);
+				//	camObject.translate(0.1,dirw);[]
+					
+				if(keysPressed["W".charCodeAt(0)] ==true){
+					camObject.translateZ(-0.1);
+
+				}
+				if(keysPressed["A".charCodeAt(0)] ==true){
+					camObject.translateX(-0.1);
+				}
+				if(keysPressed["S".charCodeAt(0)] ==true){
+					camObject.translateZ(0.1);
+
+				}
+				if(keysPressed["D".charCodeAt(0)] ==true){
+					camObject.translateX(0.1);
+				}
+				
+
+					shoulder.rotation.z = Math.sin(timer * 0.4);
+					elbow.rotation.z = -Math.cos(timer * 0.4);
+					hand.rotation.x = Math.sin(timer * 1.8);
+				
+				//This way could be better :D
+				timer += 0.1;
+				requestAnimationFrame(render);		
+			}
+			
+		</script>
+		
+	<body onload="start()">
+	</body>
+</html>
